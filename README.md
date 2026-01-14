@@ -85,6 +85,13 @@ pip install pre-commit
 pre-commit install
 ```
 
+> In case of windows being retarded with the python environment
+> you can always use this command onward:
+
+```bash
+python -m pre_commit install
+```
+
 ### Run Manually
 
 Run all hooks on all files:
