@@ -206,7 +206,3 @@ dotnet build --configuration Release
 # Publish
 dotnet publish --configuration Release --output ./publish
 ```
-
-## License
-
-MIT
