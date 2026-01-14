@@ -1,0 +1,169 @@
+# Pre-commit hooks configuration for .NET projects
+# Install pre-commit: pip install pre-commit
+# Install hooks: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+      - id: end-of-file-fixer
+        name: Fix end of files
+      - id: check-yaml
+        name: Check YAML syntax
+      - id: check-json
+        name: Check JSON syntax
+      - id: check-added-large-files
+        name: Check for large files
+        args: ["--maxkb=1000"]
+      - id: check-case-conflict
+        name: Check for case conflicts
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: detect-private-key
+        name: Detect private keys
+      - id: mixed-line-ending
+        name: Check mixed line endings
+        args: ["--fix=lf"]
+
+  # .NET specific checks using local hooks
+  - repo: local
+    hooks:
+      # dotnet format - Code formatting
+      - id: dotnet-format
+        name: dotnet format
+        entry: dotnet format
+        args:
+          [
+            "SampleWebApi.csproj",
+            "--verify-no-changes",
+            "--verbosity",
+            "diagnostic",
+          ]
+        language: system
+        types: [c#]
+        pass_filenames: false
+        description: "Runs dotnet format to check code formatting"
+
+      # dotnet build - Compilation check
+      - id: dotnet-build
+        name: dotnet build
+        entry: dotnet build
+        args:
+          [
+            "SampleWebApi.csproj",
+            "--configuration",
+            "Release",
+            "--no-incremental",
+          ]
+        language: system
+        types: [c#]
+        pass_filenames: false
+        description: "Builds the .NET project to ensure it compiles"
+
+      # dotnet test - Run tests
+      - id: dotnet-test
+        name: dotnet test
+        entry: dotnet test
+        args:
+          [
+            "SampleWebApi.csproj",
+            "--no-build",
+            "--configuration",
+            "Release",
+            "--verbosity",
+            "minimal",
+          ]
+        language: system
+        types: [c#]
+        pass_filenames: false
+        description: "Runs all tests in the solution"
+
+      # Check for code analysis warnings
+      - id: dotnet-code-analysis
+        name: dotnet code analysis
+        entry: dotnet build
+        args:
+          [
+            "SampleWebApi.csproj",
+            "/p:TreatWarningsAsErrors=true",
+            "/p:EnableNETAnalyzers=true",
+            "/p:AnalysisLevel=latest",
+          ]
+        language: system
+        types: [c#]
+        pass_filenames: false
+        description: "Runs .NET code analyzers and treats warnings as errors"
+
+      # Check csproj files for outdated packages
+      - id: dotnet-outdated-check
+        name: Check for outdated packages
+        entry: bash
+        args:
+          - -c
+          - |
+            if command -v dotnet-outdated &> /dev/null; then
+              dotnet outdated --fail-on-updates
+            else
+              echo "Warning: dotnet-outdated tool not installed. Install with: dotnet tool install --global dotnet-outdated-tool"
+              exit 0
+            fi
+        language: system
+        pass_filenames: false
+        description: "Checks for outdated NuGet packages"
+
+      # Check for TODOs and FIXMEs in committed code
+      - id: check-todos
+        name: Check for TODOs
+        entry: bash
+        args:
+          - -c
+          - |
+            if git grep -n -i -E "TODO|FIXME|HACK|XXX|OPTIMIZE" -- "*.cs"; then
+              echo "Warning: Found TODO/FIXME comments in code"
+              exit 1
+            fi
+        language: system
+        pass_filenames: false
+        always_run: true
+        description: "Warns about TODO/FIXME comments"
+
+      # Verify no debug statements
+      - id: check-debug-statements
+        name: Check for debug statements
+        entry: bash
+        args:
+          - -c
+          - |
+            if git grep -n -i -E "Console\.WriteLine|System\.Diagnostics\.Debug" -- "*.cs" | grep -v "Program.cs"; then
+              echo "Error: Found debug statements in code"
+              exit 1
+            fi
+        language: system
+        pass_filenames: false
+        always_run: true
+        description: "Checks for debug/console statements"
+
+  # Security checks
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets
+        args: ["--baseline", ".secrets.baseline"]
+        exclude: package.lock.json
+        description: "Detects secrets and credentials in code"
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.39.0
+    hooks:
+      - id: markdownlint
+        name: Lint Markdown files
+        args: ["--fix"]
+
+# Configuration for pre-commit
+fail_fast: false
